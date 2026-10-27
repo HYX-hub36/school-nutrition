@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>校园AI营养师 · MVP 原型</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-logo">🍎</span>
+      <span class="brand-name">校园AI营养师</span>
+      <span class="brand-badge">MVP</span>
+    </div>
+    <nav class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-view="order">今日点餐</button>
+      <button class="tab-btn" data-view="plan">生成方案</button>
+      <button class="tab-btn" data-view="report">每日上报</button>
+      <button class="tab-btn" data-view="records">我的记录</button>
+      <button class="tab-btn" data-view="profile">个人设置</button>
+    </nav>
+  </header>
+
+  <!-- 页面主体 -->
+  <main class="app-main">
+
+    <!-- ============ 今日点餐 ============ -->
+    <section class="view active" id="view-order">
+      <div class="view-head">
+        <h2>今日点餐</h2>
+        <p class="view-sub">输入或搜索菜名，先模拟搭配，再去食堂实点。</p>
+      </div>
+
+      <div class="search-bar">
+        <input type="search" id="dishSearch" placeholder="搜菜名，如：鱼香肉丝 / 鸡胸">
+        <button class="btn btn-primary" id="searchBtn">分析</button>
+      </div>
+
+      <div id="searchResults" class="search-results"></div>
+
+      <div class="tray-section">
+        <h3>我的托盘 <span id="trayCount" class="badge-soft">0 道菜</span></h3>
+        <div id="trayList" class="tray-list"></div>
+        <div id="traySummary" class="tray-summary"></div>
+      </div>
+
+      <div class="view-hint" id="orderHint">
+        💡 提示：点上方「生成方案」可以一键搭配一日三餐；「每日上报」会根据当天状态调整方案。
+      </div>
+    </section>
+
+    <!-- ============ 生成方案 ============ -->
+    <section class="view" id="view-plan">
+      <div class="view-head">
+        <h2>我的专属方案</h2>
+        <p class="view-sub">食堂 + 便利店就能实现的吃饭方案。</p>
+      </div>
+
+      <div id="planEmpty" class="empty-state">
+        <p>还没有生成方案。</p>
+        <button class="btn btn-primary" id="generatePlanBtn">一键生成今日方案</button>
+      </div>
+      <div id="planContent" class="plan-content"></div>
+
+      <div class="plan-actions" id="planActions" style="display:none;">
+        <button class="btn btn-primary" id="regenerateBtn">重新生成</button>
+        <button class="btn btn-outline" id="savePlanBtn">存档到我的记录</button>
+      </div>
+    </section>
+
+    <!-- ============ 每日上报 ============ -->
+    <section class="view" id="view-report">
+      <div class="view-head">
+        <h2>每日上报</h2>
+        <p class="view-sub">如实告诉 AI 今天的身体状态，方案会跟着调整。</p>
+      </div>
+
+      <div class="card">
+        <h3>今天的状态（可多选）</h3>
+        <div class="check-group" id="statusChecks">
+          <label class="check"><input type="checkbox" name="status" value="lateNight"> 熬夜 / 睡眠不足</label>
+          <label class="check"><input type="checkbox" name="status" value="stress"> 压力大 / 焦虑</label>
+          <label class="check"><input type="checkbox" name="status" value="exercise"> 今天运动了</label>
+          <label class="check"><input type="checkbox" name="status" value="upset"> 肠胃不适</label>
+          <label class="check"><input type="checkbox" name="status" value="sick"> 感冒 / 身体异常</label>
+        </div>
+        <div class="field">
+          <label for="reportNote">一句自由记录（可选）</label>
+          <textarea id="reportNote" rows="3" placeholder="例如：期末周熬夜复习，今天想吃得清淡点…"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" id="submitReport">提交，获取调整建议</button>
+      </div>
+
+      <div id="reportResult" class="report-result"></div>
+    </section>
+
+    <!-- ============ 我的记录 ============ -->
+    <section class="view" id="view-records">
+      <div class="view-head">
+        <h2>我的记录</h2>
+        <p class="view-sub">记录本身就是成长，这里只谈状态改善，不搞身材焦虑。</p>
+      </div>
+
+      <div id="recordsStreak" class="streak-card"></div>
+      <div id="recordsEncourage" class="encourage-card"></div>
+      <div id="recordsList" class="records-list"></div>
+    </section>
+
+    <!-- ============ 个人设置 ============ -->
+    <section class="view" id="view-profile">
+      <div class="view-head">
+        <h2>个人设置</h2>
+        <p class="view-sub">建档信息只存在本地，用于个性化计算。</p>
+      </div>
+
+      <div class="card">
+        <div class="field-row">
+          <div class="field">
+            <label>性别</label>
+            <select id="pGender">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pAge">年龄</label>
+            <input type="number" id="pAge" min="16" max="40" value="20">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="pHeight">身高 (cm)</label>
+            <input type="number" id="pHeight" min="140" max="210" value="170">
+          </div>
+          <div class="field">
+            <label for="pWeight">体重 (kg)</label>
+            <input type="number" id="pWeight" min="35" max="150" value="60">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pExercise">每周运动量</label>
+          <select id="pExercise">
+            <option value="0">几乎不运动</option>
+            <option value="1" selected>1-2 次</option>
+            <option value="3">3-4 次</option>
+            <option value="5">5 次以上</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pBudget">每月生活费 (元)</label>
+          <input type="number" id="pBudget" min="500" max="5000" step="50" value="1200">
+          <p class="field-help">用于估算每日可支配餐费，方案不会超出预算。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>忌口（可多选）</h3>
+        <div class="check-group" id="allergyChecks">
+          <label class="check"><input type="checkbox" name="allergy" value="辣"> 不吃辣</label>
+          <label class="check"><input type="checkbox" name="allergy" value="海鲜"> 海鲜过敏</label>
+          <label class="check"><input type="checkbox" name="allergy" value="花生"> 花生过敏</label>
+          <label class="check"><input type="checkbox" name="allergy" value="牛羊肉"> 不吃牛羊肉</label>
+          <label class="check"><input type="checkbox" name="allergy" value="香菜"> 不吃香菜</label>
+          <label class="check"><input type="checkbox" name="allergy" value="豆制品"> 豆制品忌口</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>健康诉求（可多选）</h3>
+        <div class="check-group" id="needChecks">
+          <label class="check"><input type="checkbox" name="need" value="调理皮肤"> 调理皮肤</label>
+          <label class="check"><input type="checkbox" name="need" value="调理肠胃"> 调理肠胃</label>
+          <label class="check"><input type="checkbox" name="need" value="熬夜恢复"> 熬夜恢复</label>
+          <label class="check"><input type="checkbox" name="need" value="减脂"> 减脂</label>
+          <label class="check"><input type="checkbox" name="need" value="增肌"> 增肌</label>
+          <label class="check"><input type="checkbox" name="need" value="控糖"> 控糖</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>自定义食堂菜品</h3>
+        <p class="field-help">食堂没收录的菜，可以自己录入，方案生成时会一起考虑。</p>
+        <div class="dish-form">
+          <input type="text" id="customName" placeholder="菜名">
+          <input type="number" id="customPrice" placeholder="价格(元)" step="0.5" min="0">
+          <input type="number" id="customKcal" placeholder="约热量(kcal)" min="0">
+          <select id="customCook">
+            <option value="清炒">清炒</option>
+            <option value="红烧">红烧</option>
+            <option value="油炸">油炸</option>
+            <option value="蒸煮">蒸煮</option>
+            <option value="汤">汤</option>
+            <option value="凉拌">凉拌</option>
+          </select>
+          <button class="btn btn-outline" id="addDishBtn">添加</button>
+        </div>
+        <div id="customMenuList" class="custom-menu-list"></div>
+      </div>
+
+      <div class="profile-actions">
+        <button class="btn btn-primary btn-block" id="saveProfileBtn">保存档案</button>
+        <button class="btn btn-outline btn-block" id="loadDemoBtn">载入示例档案</button>
+        <button class="btn btn-danger btn-block" id="resetBtn">重置全部数据</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部说明 -->
+  <footer class="app-footer">
+    <p>校园AI营养师 · MVP 原型 · 营养数据为估算值，仅供参考，不构成医疗建议</p>
+  </footer>
+
+  <!-- 轻提示 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
