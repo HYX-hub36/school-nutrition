@@ -84,4 +84,42 @@ const planAdj = E.generatePlan(profile, { lateNight: true });
 ok('熬夜加蛋白后总价不超日均预算', planAdj.total.price <= profile.dailyBudget, { price: planAdj.total.price, budget: profile.dailyBudget });
 ok('熬夜方案确实加了蛋白(鸡胸)', planAdj.meals.some(m => m.items.some(i => i.name === '即食鸡胸肉')), planAdj.meals.map(m => m.items.map(i => i.name)));
 
+console.log('=== 个人食堂：营养匹配 / AI 估算 / 均价 / 烹饪修正 ===');
+ok('FOOD_DB 菜品数 >= 30', D.FOOD_DB.length >= 30, D.FOOD_DB.length);
+// 精确匹配
+const m1 = E.matchFoodByName('西红柿炒蛋');
+ok('西红柿炒蛋精确匹配', m1.matched && m1.confidence === 'high' && m1.food.kcal === 220, m1);
+// 别名匹配
+const m2 = E.matchFoodByName('番茄炒蛋');
+ok('番茄炒蛋别名匹配', m2.matched && m2.food.name === '西红柿炒蛋', m2);
+// 包含匹配
+const m3 = E.matchFoodByName('西红柿炒蛋盖饭');
+ok('西红柿炒蛋盖饭包含匹配', m3.matched && m3.food.name === '西红柿炒蛋', m3);
+// 未命中 → AI 估算
+const m4 = E.matchFoodByName('食堂秘制牛肉面');
+ok('未收录菜不匹配', m4.matched === false, m4);
+const est = E.estimateByAI('食堂秘制牛肉面', '清炒');
+ok('AI 估算返回全套营养+source=ai', est.source === 'ai' && est.kcal > 0 && est.protein > 0 && est.fat > 0, est);
+// 类型判断
+ok('guessType 牛肉→荤', E.guessType('牛肉炒饭') === '荤');
+ok('guessType 西兰花→素', E.guessType('蒜蓉西兰花') === '素');
+ok('guessType 面条→主食', E.guessType('牛肉面') === '主食');
+ok('guessType 米饭→主食', E.guessType('米饭') === '主食');
+// 烹饪修正：油炸应升高脂肪
+const baseAdj = { kcal: 200, protein: 10, fat: 8, carb: 15, sodium: 300 };
+const fried = E.applyCookAdjustment(baseAdj, '油炸');
+ok('油炸修正脂肪升高', fried.fat > baseAdj.fat, { before: baseAdj.fat, after: fried.fat });
+const steamed = E.applyCookAdjustment(baseAdj, '清蒸');
+ok('清蒸修正脂肪降低', steamed.fat < baseAdj.fat, { before: baseAdj.fat, after: steamed.fat });
+// 参考均价
+const avgMeat = E.avgPriceByType('荤', []);
+ok('荤菜参考均价合理(3~8元)', avgMeat.price >= 3 && avgMeat.price <= 8 && avgMeat.note === '参考均价', avgMeat);
+const avgNone = E.avgPriceByType('汤', []);
+ok('汤类无参考也有兜底均价', avgNone.price > 0, avgNone);
+// 用户菜参与均价
+const userDish1 = { name: '食堂烤鸭', price: 12, tags: ['高蛋白'], cook: '烤制' };
+const avgBase = E.avgPriceByType('荤', []);
+const avgWithUser = E.avgPriceByType('荤', [userDish1]);
+ok('用户高价菜抬升荤菜均价', avgWithUser.price > avgBase.price, { base: avgBase.price, withUser: avgWithUser.price });
+
 console.log('\n' + (process.exitCode ? '✗ 存在失败项' : '✓ 全部通过') + '（' + passed + ' 项断言）');

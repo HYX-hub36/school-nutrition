@@ -53,6 +53,7 @@
     if (name === 'profile') fillProfileForm();
     if (name === 'order') renderTray();
     if (name === 'report') renderReportResult();
+    if (name === 'canteen') renderCanteen();
     window.scrollTo(0, 0);
   }
 
@@ -96,7 +97,6 @@
     $$('input[name="need"]').forEach(function (c) {
       c.checked = (p.needs || []).indexOf(c.value) >= 0;
     });
-    renderCustomMenu();
   }
 
   function loadDemoProfile() {
@@ -398,56 +398,256 @@
     box.innerHTML = html;
   }
 
-  // ============ 自定义菜品 ============
+  // ============ 我的个人食堂 ============
 
-  function renderCustomMenu() {
+  var canteenEditTarget = null; // 当前编辑的菜名
+
+  function renderCanteen() {
     var list = S.getMenu();
-    var box = $('#customMenuList');
+    $('#canteenCount').textContent = list.length + ' 道';
+    var box = $('#canteenList');
     if (!list.length) {
-      box.innerHTML = '<div class="empty-small">暂无自定义菜品。</div>';
+      box.innerHTML = '<div class="empty-small">还没有录入菜品。输入菜名试试，系统会自动帮你匹配营养数据。</div>';
       return;
     }
     box.innerHTML = list.map(function (d) {
-      return '<div class="custom-item"><span>' + esc(d.name) + '</span><span>¥' + fmt(d.price) + ' · ' + d.kcal + ' kcal</span>' +
-        '<button class="btn btn-remove" data-del-custom="' + esc(d.name) + '">删</button></div>';
+      var srcTag = d.source === 'ai' ? '<span class="badge-ai">AI 估算</span>' : '';
+      var priceTag = (d.sourceNote === '参考均价') ? '<span class="badge-avg">参考均价</span>' : '';
+      return '<div class="canteen-card">' +
+        '<div class="canteen-card-head">' +
+          '<span class="canteen-card-name">' + esc(d.name) + '</span>' + srcTag + priceTag +
+        '</div>' +
+        '<div class="canteen-card-nutri">🔥 ' + (d.kcal || 0) + ' kcal · 蛋白 ' + (d.protein || 0) + 'g · 脂肪 ' + (d.fat || 0) + 'g · 碳水 ' + (d.carb || 0) + 'g · 钠 ' + (d.sodium || 0) + 'mg</div>' +
+        '<div class="canteen-card-meta">¥' + fmt(d.price) + ' · ' + esc(d.cook || '清炒') + '</div>' +
+        '<div class="canteen-card-actions">' +
+          '<button class="btn btn-outline btn-sm" data-view-dish="' + esc(d.name) + '">详情</button>' +
+          '<button class="btn btn-outline btn-sm" data-edit-dish="' + esc(d.name) + '">编辑</button>' +
+          '<button class="btn btn-danger btn-sm" data-del-dish="' + esc(d.name) + '">删除</button>' +
+        '</div>' +
+      '</div>';
     }).join('');
   }
 
-  function addCustomDish() {
-    var name = $('#customName').value.trim();
-    var price = +$('#customPrice').value || 0;
-    var kcal = +$('#customKcal').value || 0;
-    var cook = $('#customCook').value;
+  /** 菜名失焦/回车：匹配营养库或 AI 估算，回填表单 */
+  function autoFillByDishName() {
+    var name = $('#canteenName').value.trim();
+    if (!name) { $('#canteenMatchResult').innerHTML = ''; return; }
+    var match = E.matchFoodByName(name);
+    var base, source, note;
+    if (match.matched) {
+      base = match.food;
+      source = 'db';
+      note = '匹配营养库（' + match.food.name + '）';
+    } else {
+      base = E.estimateByAI(name, $('#canteenCook').value);
+      source = 'ai';
+      note = '未收录，已用 AI 估算（可手动修正）';
+    }
+    // 应用当前烹饪方式修正
+    var adjusted = E.applyCookAdjustment(base, $('#canteenCook').value);
+    $('#canteenKcal').value = adjusted.kcal;
+    $('#canteenProtein').value = adjusted.protein;
+    $('#canteenFat').value = adjusted.fat;
+    $('#canteenCarb').value = adjusted.carb;
+    $('#canteenSodium').value = adjusted.sodium;
+    // 价格：用户没填才自动补参考均价
+    if (!$('#canteenPrice').value) {
+      var type = source === 'db' ? match.food.type : base.type;
+      var avg = E.avgPriceByType(type, S.getMenu());
+      $('#canteenPrice').value = avg.price;
+      $('#canteenPriceNote').textContent = '参考均价 ¥' + avg.price;
+    }
+    $('#canteenMatchResult').innerHTML = '<div class="match-result-inner">' + esc(note) + '</div>';
+    canteenFormSource = source;
+  }
+
+  var canteenFormSource = 'db'; // 当前表单营养来源
+
+  /** 烹饪方式变化 → 基于当前数值修正 */
+  function adjustByCookChange() {
+    var kcal = +$('#canteenKcal').value || 0;
+    if (!kcal) return;
+    var base = {
+      kcal: kcal,
+      protein: +$('#canteenProtein').value || 0,
+      fat: +$('#canteenFat').value || 0,
+      carb: +$('#canteenCarb').value || 0,
+      sodium: +$('#canteenSodium').value || 0,
+    };
+    var adjusted = E.applyCookAdjustment(base, $('#canteenCook').value);
+    $('#canteenKcal').value = adjusted.kcal;
+    $('#canteenFat').value = adjusted.fat;
+    $('#canteenSodium').value = adjusted.sodium;
+  }
+
+  function saveCanteenDish() {
+    var name = $('#canteenName').value.trim();
     if (!name) { toast('请输入菜名'); return; }
-    if (price <= 0) { toast('请输入价格'); return; }
+    var kcal = +$('#canteenKcal').value || 0;
+    var protein = +$('#canteenProtein').value || 0;
+    var fat = +$('#canteenFat').value || 0;
+    var carb = +$('#canteenCarb').value || 0;
+    var sodium = +$('#canteenSodium').value || 0;
+    var price = +$('#canteenPrice').value || 0;
+    var cook = $('#canteenCook').value;
+    if (!kcal) { toast('请先填热量，或输入菜名自动匹配'); return; }
+    var sourceNote = '';
+    if (canteenFormSource === 'ai') sourceNote = 'AI 估算';
+    if (!price) {
+      // 用户没填价 → 补参考均价（无论营养来自库匹配还是 AI 估算）
+      var matched = E.matchFoodByName(name);
+      var type = matched.matched ? matched.food.type : E.guessType(name);
+      var avg = E.avgPriceByType(type, S.getMenu());
+      price = avg.price;
+      sourceNote = '参考均价';
+    }
     var dish = {
       name: name, price: price, kcal: kcal,
-      protein: Math.round(kcal * 0.1), // 简单估算：蛋白 ≈ 10% 热量克数
-      fat: Math.round(kcal * 0.35 / 9 * 10) / 10,
-      carb: Math.round(kcal * 0.45 / 4 * 10) / 10,
-      sodium: cook === '油炸' || cook === '红烧' ? 800 : 400,
+      protein: protein, fat: fat, carb: carb, sodium: sodium,
       cook: cook,
-      tags: cook === '油炸' ? ['油炸'] : (cook === '蒸煮' || cook === '汤' ? ['清淡', '易消化'] : []),
-      allergies: [],
-      fakeHealth: false,
-      portion: 180,
-      desc: '自定义菜品（估算值）',
+      tags: cook === '油炸' ? ['油炸'] : (cook === '清蒸' || cook === '汤' ? ['清淡', '易消化'] : []),
+      allergies: [], fakeHealth: false, portion: 180,
+      desc: canteenFormSource === 'ai' ? 'AI 估算菜品' : '个人食堂录入',
+      source: canteenFormSource, sourceNote: sourceNote,
+      createdAt: Date.now(), updatedAt: Date.now(),
     };
     if (S.addDish(dish)) {
-      toast('已添加：' + name);
-      $('#customName').value = '';
-      $('#customPrice').value = '';
-      $('#customKcal').value = '';
-      renderCustomMenu();
+      toast('已保存：' + name);
+      clearCanteenForm();
+      renderCanteen();
     } else {
-      toast('添加失败');
+      toast('保存失败');
     }
   }
 
-  function removeCustomDish(name) {
-    S.saveMenu(S.getMenu().filter(function (d) { return d.name !== name; }));
-    renderCustomMenu();
+  function clearCanteenForm() {
+    $('#canteenName').value = '';
+    $('#canteenKcal').value = '';
+    $('#canteenProtein').value = '';
+    $('#canteenFat').value = '';
+    $('#canteenCarb').value = '';
+    $('#canteenSodium').value = '';
+    $('#canteenPrice').value = '';
+    $('#canteenCook').value = '清炒';
+    $('#canteenMatchResult').innerHTML = '';
+    $('#canteenPriceNote').textContent = '';
+    canteenFormSource = 'db';
+  }
+
+  function removeCanteenDish(name) {
+    S.removeDish(name);
+    renderCanteen();
     toast('已删除：' + name);
+  }
+
+  function showDishDetail(name) {
+    var d = S.getMenu().filter(function (x) { return x.name === name; })[0];
+    if (!d) return;
+    var srcTag = d.source === 'ai' ? '<span class="badge-ai">AI 估算</span>' : '';
+    var priceTag = d.sourceNote === '参考均价' ? '<span class="badge-avg">参考均价</span>' : '';
+    var html = '<div class="detail-card">' +
+      '<h3>' + esc(d.name) + ' ' + srcTag + ' ' + priceTag + '</h3>' +
+      '<div class="detail-grid">' +
+        '<div class="detail-item"><span>热量</span><b>' + d.kcal + ' kcal</b></div>' +
+        '<div class="detail-item"><span>蛋白质</span><b>' + d.protein + ' g</b></div>' +
+        '<div class="detail-item"><span>脂肪</span><b>' + d.fat + ' g</b></div>' +
+        '<div class="detail-item"><span>碳水</span><b>' + d.carb + ' g</b></div>' +
+        '<div class="detail-item"><span>钠</span><b>' + d.sodium + ' mg</b></div>' +
+        '<div class="detail-item"><span>价格</span><b>¥' + fmt(d.price) + '</b></div>' +
+        '<div class="detail-item"><span>烹饪方式</span><b>' + esc(d.cook || '清炒') + '</b></div>' +
+      '</div>' +
+      '<p class="detail-hint">录入的菜品会与系统菜一起参与【今日点餐】和【生成方案】。</p>' +
+      '<button class="btn btn-outline btn-block" id="closeDetailBtn">关闭</button>' +
+    '</div>';
+    // 复用编辑弹层容器展示详情
+    $('#editModal').style.display = 'block';
+    document.querySelector('#editModal .modal-body').innerHTML = html;
+    $('#closeDetailBtn').addEventListener('click', closeModal);
+  }
+
+  function openEditModal(name) {
+    var d = S.getMenu().filter(function (x) { return x.name === name; })[0];
+    if (!d) return;
+    canteenEditTarget = name;
+    $('#editName').value = d.name;
+    $('#editPrice').value = d.price;
+    $('#editCook').value = d.cook || '清炒';
+    $('#editKcal').value = d.kcal;
+    $('#editProtein').value = d.protein;
+    $('#editFat').value = d.fat;
+    $('#editCarb').value = d.carb;
+    $('#editSodium').value = d.sodium;
+    $('#editModal').style.display = 'block';
+    // 恢复编辑表单结构（详情可能改过 modal-body 内容）
+    ensureEditFormHtml();
+  }
+
+  function ensureEditFormHtml() {
+    // 详情视图会替换 modal-body 内容，切回编辑时需恢复表单
+    var body = document.querySelector('#editModal .modal-body');
+    if (!body.querySelector('#editName')) {
+      body.innerHTML =
+        '<h3>编辑菜品</h3>' +
+        '<div class="field"><label for="editName">菜品名称</label><input type="text" id="editName"></div>' +
+        '<div class="field-row"><div class="field"><label for="editPrice">价格 (元)</label><input type="number" id="editPrice" min="0" step="0.5"></div>' +
+        '<div class="field"><label for="editCook">烹饪方式</label><select id="editCook">' +
+          '<option value="清炒">清炒</option><option value="红烧">红烧</option><option value="清蒸">清蒸</option>' +
+          '<option value="油炸">油炸</option><option value="汤">汤</option><option value="凉拌">凉拌</option>' +
+        '</select></div></div>' +
+        '<div class="field-row"><div class="field"><label for="editKcal">热量 (kcal)</label><input type="number" id="editKcal" min="0" step="5"></div>' +
+        '<div class="field"><label for="editProtein">蛋白 (g)</label><input type="number" id="editProtein" min="0" step="0.5"></div></div>' +
+        '<div class="field-row"><div class="field"><label for="editFat">脂肪 (g)</label><input type="number" id="editFat" min="0" step="0.5"></div>' +
+        '<div class="field"><label for="editCarb">碳水 (g)</label><input type="number" id="editCarb" min="0" step="0.5"></div></div>' +
+        '<div class="field"><label for="editSodium">钠 (mg)</label><input type="number" id="editSodium" min="0" step="10"></div>' +
+        '<div class="modal-actions"><button class="btn btn-primary" id="confirmEditBtn">保存</button>' +
+        '<button class="btn btn-outline" id="cancelEditBtn">取消</button></div>';
+      // 重新绑定编辑按钮
+      $('#confirmEditBtn').addEventListener('click', confirmEditDish);
+      $('#cancelEditBtn').addEventListener('click', closeModal);
+    }
+    // 回填
+    var d = S.getMenu().filter(function (x) { return x.name === canteenEditTarget; })[0];
+    if (d) {
+      $('#editName').value = d.name;
+      $('#editPrice').value = d.price;
+      $('#editCook').value = d.cook || '清炒';
+      $('#editKcal').value = d.kcal;
+      $('#editProtein').value = d.protein;
+      $('#editFat').value = d.fat;
+      $('#editCarb').value = d.carb;
+      $('#editSodium').value = d.sodium;
+    }
+  }
+
+  function confirmEditDish() {
+    if (!canteenEditTarget) return;
+    var name = $('#editName').value.trim();
+    if (!name) { toast('菜名不能为空'); return; }
+    var patch = {
+      name: name,
+      price: +$('#editPrice').value || 0,
+      cook: $('#editCook').value,
+      kcal: +$('#editKcal').value || 0,
+      protein: +$('#editProtein').value || 0,
+      fat: +$('#editFat').value || 0,
+      carb: +$('#editCarb').value || 0,
+      sodium: +$('#editSodium').value || 0,
+    };
+    // 编辑后若原 source 是 ai 但用户修正了，仍保留标记（说明来源）
+    if (S.updateDish(canteenEditTarget, patch)) {
+      toast('已更新：' + name);
+      closeModal();
+      renderCanteen();
+    } else {
+      toast('更新失败');
+    }
+  }
+
+  function closeModal() {
+    $('#editModal').style.display = 'none';
+    // 恢复编辑表单结构（下次编辑用）
+    ensureEditFormHtml();
+    canteenEditTarget = null;
   }
 
   // ============ 事件绑定 ============
@@ -525,12 +725,31 @@
       }
     });
 
-    // 自定义菜品
-    $('#addDishBtn').addEventListener('click', addCustomDish);
-    $('#customMenuList').addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-del-custom]');
-      if (btn) removeCustomDish(btn.dataset.delCustom);
+    // 我的个人食堂
+    $('#canteenName').addEventListener('blur', autoFillByDishName);
+    $('#canteenName').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') autoFillByDishName();
     });
+    $('#canteenCook').addEventListener('change', function () {
+      adjustByCookChange();
+    });
+    $('#saveDishBtn').addEventListener('click', saveCanteenDish);
+    $('#clearFormBtn').addEventListener('click', clearCanteenForm);
+    $('#cameraBtn').addEventListener('click', function () {
+      toast('📷 拍照识别即将上线（当前为 MVP 占位）');
+    });
+    // 菜品列表（事件委托）
+    $('#canteenList').addEventListener('click', function (e) {
+      var delBtn = e.target.closest('[data-del-dish]');
+      if (delBtn) { removeCanteenDish(delBtn.dataset.delDish); return; }
+      var editBtn = e.target.closest('[data-edit-dish]');
+      if (editBtn) { openEditModal(editBtn.dataset.editDish); return; }
+      var viewBtn = e.target.closest('[data-view-dish]');
+      if (viewBtn) showDishDetail(viewBtn.dataset.viewDish);
+    });
+    // 编辑弹层
+    $('#confirmEditBtn').addEventListener('click', confirmEditDish);
+    $('#cancelEditBtn').addEventListener('click', closeModal);
   }
 
   // ============ 初始化 ============

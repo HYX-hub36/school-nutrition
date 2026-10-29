@@ -373,7 +373,7 @@ body {
 
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 6px; }
-.field input[type="number"], .field select, .field textarea, .dish-form input, .dish-form select {
+.field input[type="number"], .field select, .field textarea {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid var(--border);
@@ -382,8 +382,7 @@ body {
   background: var(--card);
   font-family: inherit;
 }
-.field input:focus, .field select:focus, .field textarea:focus,
-.dish-form input:focus, .dish-form select:focus {
+.field input:focus, .field select:focus, .field textarea:focus {
   outline: 2px solid var(--primary-soft);
   border-color: var(--primary);
 }
@@ -454,30 +453,103 @@ body {
 .plan-record .record-note { color: var(--text-sub); }
 .badge-ok { font-size: 12px; background: var(--primary-soft); color: var(--primary-dark); padding: 1px 8px; border-radius: 10px; }
 
-/* ============ 自定义菜品 ============ */
+/* ============ 我的个人食堂 ============ */
 
-.dish-form {
+.field-opt { font-size: 11px; color: var(--text-sub); font-weight: 400; }
+.dish-name-row { display: flex; gap: 8px; }
+.dish-name-row input { flex: 1; }
+
+.match-result { margin: 8px 0; }
+.match-result-inner {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.canteen-actions { display: flex; gap: 10px; margin-top: 4px; }
+.canteen-actions .btn { flex: 1; }
+
+.canteen-list-section h3 { font-size: 15px; margin: 16px 0 10px; }
+
+.canteen-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.canteen-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.canteen-card-name { font-weight: 600; font-size: 15px; }
+.canteen-card-nutri { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+.canteen-card-meta { font-size: 13px; color: var(--primary-dark); font-weight: 600; margin-bottom: 8px; }
+.canteen-card-actions { display: flex; gap: 8px; }
+
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+.badge-ai {
+  display: inline-block;
+  font-size: 11px;
+  background: #ede7f6;
+  color: #5e35b1;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
+.badge-avg {
+  display: inline-block;
+  font-size: 11px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
+
+/* 编辑弹层 */
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; }
+.modal-mask { position: absolute; inset: 0; background: rgba(38, 50, 56, .45); }
+.modal-body {
+  position: relative;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  width: 92%;
+  max-width: 400px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+}
+.modal-body h3 { font-size: 16px; margin-bottom: 12px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+.modal-actions .btn { flex: 1; }
+
+/* 详情卡片（复用弹层容器） */
+.detail-card h3 { font-size: 16px; margin-bottom: 12px; }
+.detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.dish-form input:nth-child(1) { grid-column: 1 / -1; }
-.dish-form .btn { grid-column: 1 / -1; }
-
-.custom-menu-list { margin-top: 6px; }
-.custom-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
+.detail-item {
   background: #fafcfb;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
-  margin-bottom: 6px;
+  text-align: center;
 }
-.custom-item span:nth-child(2) { flex: 1; color: var(--text-sub); }
+.detail-item span { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 2px; }
+.detail-item b { font-size: 14px; color: var(--text); }
+.detail-hint { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; }
 
 /* ============ 提示 & 页脚 ============ */
 

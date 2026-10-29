@@ -55,16 +55,39 @@
     return !!getProfile();
   }
 
-  // ============ 自定义食堂菜单 ============
+  // ============ 自定义食堂菜单（我的个人食堂） ============
   function getMenu() {
-    return read('menu', []);
+    var list = read('menu', []);
+    // 旧数据迁移：老条目无 source 字段 → 补 source:'db'（保守归为库匹配）
+    return list.map(function (d) {
+      if (typeof d.source === 'undefined') d.source = 'db';
+      if (typeof d.sourceNote === 'undefined') d.sourceNote = '';
+      return d;
+    });
   }
   function saveMenu(list) {
     return write('menu', list);
   }
   function addDish(dish) {
     var list = getMenu();
-    list.push(dish);
+    // 同名去重：已存在则更新（覆盖）
+    var idx = list.findIndex(function (d) { return d.name === dish.name; });
+    if (idx >= 0) list[idx] = dish; else list.push(dish);
+    return saveMenu(list);
+  }
+  function updateDish(name, patch) {
+    var list = getMenu();
+    var idx = list.findIndex(function (d) { return d.name === name; });
+    if (idx < 0) return false;
+    var merged = {};
+    Object.keys(list[idx]).forEach(function (k) { merged[k] = list[idx][k]; });
+    Object.keys(patch).forEach(function (k) { merged[k] = patch[k]; });
+    merged.updatedAt = Date.now();
+    list[idx] = merged;
+    return saveMenu(list);
+  }
+  function removeDish(name) {
+    var list = getMenu().filter(function (d) { return d.name !== name; });
     return saveMenu(list);
   }
 
@@ -143,6 +166,8 @@
     getMenu: getMenu,
     saveMenu: saveMenu,
     addDish: addDish,
+    updateDish: updateDish,
+    removeDish: removeDish,
     getLogs: getLogs,
     addLog: addLog,
     streakDays: streakDays,

@@ -161,6 +161,105 @@ const ENCOURAGEMENTS = [
   '别拿别人的身材标准要求自己，你只需要比上周的状态好一点。',
 ];
 
+// ============ 食物营养数据库（供「我的个人食堂」菜名匹配回填） ============
+// 字段：name 名称, aliases 别名, type 类型(荤/素/主食/汤), defaultCook 默认烹饪方式
+// kcal/protein/fat/carb/sodium 按"一份"估算（100-250g，参考食堂份量）
+const FOOD_DB = [
+  // ---- 荤菜 ----
+  { name: '西红柿炒蛋', aliases: ['番茄炒蛋', '番茄鸡蛋'], type: '荤', defaultCook: '清炒', kcal: 220, protein: 10, fat: 14, carb: 16, sodium: 480 },
+  { name: '红烧肉', aliases: ['东坡肉', '红烧五花肉'], type: '荤', defaultCook: '红烧', kcal: 480, protein: 22, fat: 36, carb: 18, sodium: 720 },
+  { name: '糖醋里脊', aliases: ['糖醋排骨'], type: '荤', defaultCook: '油炸', kcal: 420, protein: 18, fat: 22, carb: 38, sodium: 620 },
+  { name: '鱼香肉丝', aliases: ['鱼香肉丝盖饭'], type: '荤', defaultCook: '清炒', kcal: 320, protein: 16, fat: 18, carb: 28, sodium: 980 },
+  { name: '宫保鸡丁', aliases: ['宫爆鸡丁'], type: '荤', defaultCook: '清炒', kcal: 300, protein: 18, fat: 16, carb: 24, sodium: 760 },
+  { name: '清蒸鱼', aliases: ['蒸鱼', '清蒸鲈鱼'], type: '荤', defaultCook: '清蒸', kcal: 210, protein: 28, fat: 8, carb: 2, sodium: 420 },
+  { name: '白灼虾', aliases: ['水煮虾', '白灼基围虾'], type: '荤', defaultCook: '清蒸', kcal: 160, protein: 26, fat: 3, carb: 2, sodium: 380 },
+  { name: '土豆烧鸡块', aliases: ['土豆炖鸡', '小鸡炖土豆'], type: '荤', defaultCook: '红烧', kcal: 350, protein: 20, fat: 16, carb: 32, sodium: 650 },
+  { name: '香辣鸡腿', aliases: ['炸鸡腿', '辣子鸡腿'], type: '荤', defaultCook: '油炸', kcal: 380, protein: 20, fat: 24, carb: 16, sodium: 850 },
+  { name: '卤牛肉', aliases: ['酱牛肉', '卤牛腱'], type: '荤', defaultCook: '红烧', kcal: 260, protein: 32, fat: 12, carb: 3, sodium: 780 },
+  { name: '香煎鸡胸', aliases: ['煎鸡胸', '鸡胸肉', '水煮鸡胸'], type: '荤', defaultCook: '清炒', kcal: 260, protein: 32, fat: 10, carb: 5, sodium: 520 },
+  { name: '青椒肉丝', aliases: ['青椒炒肉'], type: '荤', defaultCook: '清炒', kcal: 240, protein: 16, fat: 14, carb: 12, sodium: 560 },
+  { name: '麻婆豆腐', aliases: ['麻辣豆腐'], type: '荤', defaultCook: '红烧', kcal: 260, protein: 14, fat: 16, carb: 14, sodium: 900 },
+  { name: '辣椒炒肉', aliases: ['农家小炒肉', '青椒炒肉'], type: '荤', defaultCook: '清炒', kcal: 300, protein: 18, fat: 20, carb: 12, sodium: 680 },
+  { name: '可乐鸡翅', aliases: ['鸡翅', '可乐鸡翅根'], type: '荤', defaultCook: '红烧', kcal: 340, protein: 20, fat: 18, carb: 26, sodium: 580 },
+  // ---- 素菜 ----
+  { name: '地三鲜', aliases: ['三鲜茄子'], type: '素', defaultCook: '油炸', kcal: 310, protein: 6, fat: 22, carb: 28, sodium: 780 },
+  { name: '干煸豆角', aliases: ['干煸四季豆'], type: '素', defaultCook: '油炸', kcal: 280, protein: 8, fat: 20, carb: 22, sodium: 820 },
+  { name: '炒时蔬', aliases: ['清炒青菜', '炒青菜', '素炒时蔬'], type: '素', defaultCook: '清炒', kcal: 120, protein: 4, fat: 7, carb: 12, sodium: 380 },
+  { name: '凉拌黄瓜', aliases: ['拍黄瓜', '黄瓜'], type: '素', defaultCook: '凉拌', kcal: 90, protein: 3, fat: 4, carb: 12, sodium: 420 },
+  { name: '蒸蛋羹', aliases: ['鸡蛋羹', '蒸水蛋'], type: '素', defaultCook: '清蒸', kcal: 140, protein: 12, fat: 8, carb: 4, sodium: 320 },
+  { name: '清炒西兰花', aliases: ['西兰花', '蒜蓉西兰花'], type: '素', defaultCook: '清炒', kcal: 130, protein: 6, fat: 6, carb: 14, sodium: 360 },
+  { name: '炒土豆丝', aliases: ['酸辣土豆丝', '醋溜土豆丝', '土豆丝'], type: '素', defaultCook: '清炒', kcal: 200, protein: 4, fat: 10, carb: 26, sodium: 480 },
+  { name: '蒜蓉油麦菜', aliases: ['油麦菜', '蒜蓉生菜'], type: '素', defaultCook: '清炒', kcal: 110, protein: 3, fat: 6, carb: 12, sodium: 340 },
+  { name: '红烧茄子', aliases: ['烧茄子', '鱼香茄子'], type: '素', defaultCook: '油炸', kcal: 290, protein: 5, fat: 20, carb: 26, sodium: 700 },
+  { name: '炒豆腐', aliases: ['家常豆腐', '豆腐'], type: '素', defaultCook: '清炒', kcal: 180, protein: 12, fat: 10, carb: 10, sodium: 420 },
+  // ---- 主食 ----
+  { name: '米饭', aliases: ['白米饭', '白饭'], type: '主食', defaultCook: '清蒸', kcal: 230, protein: 5, fat: 1, carb: 52, sodium: 5 },
+  { name: '杂粮饭', aliases: ['粗粮饭', '糙米饭', '五谷饭'], type: '主食', defaultCook: '清蒸', kcal: 210, protein: 6, fat: 2, carb: 44, sodium: 10 },
+  { name: '红薯', aliases: ['烤红薯', '地瓜'], type: '主食', defaultCook: '清蒸', kcal: 130, protein: 2, fat: 0, carb: 30, sodium: 10 },
+  { name: '南瓜粥', aliases: ['南瓜小米粥', '小米南瓜粥'], type: '主食', defaultCook: '汤', kcal: 110, protein: 3, fat: 1, carb: 24, sodium: 30 },
+  { name: '荞麦面', aliases: ['荞麦面条', '荞麦面汤面'], type: '主食', defaultCook: '汤', kcal: 280, protein: 10, fat: 4, carb: 52, sodium: 420 },
+  { name: '馒头', aliases: ['白面馒头'], type: '主食', defaultCook: '清蒸', kcal: 220, protein: 7, fat: 1, carb: 46, sodium: 120 },
+  // ---- 汤 ----
+  { name: '玉米排骨汤', aliases: ['排骨玉米汤'], type: '汤', defaultCook: '汤', kcal: 220, protein: 16, fat: 10, carb: 18, sodium: 520 },
+  { name: '紫菜蛋花汤', aliases: ['蛋花汤', '紫菜汤'], type: '汤', defaultCook: '汤', kcal: 80, protein: 5, fat: 3, carb: 6, sodium: 380 },
+  { name: '冬瓜排骨汤', aliases: ['排骨冬瓜汤'], type: '汤', defaultCook: '汤', kcal: 180, protein: 12, fat: 8, carb: 10, sodium: 460 },
+];
+
+// ============ AI 估算模板（未命中营养库时用） ============
+// type 荤/素/主食/汤 × cook 烹饪方式 → 一套基准营养（每份）
+const AI_ESTIMATE_TEMPLATES = {
+  '荤': {
+    '清炒': { kcal: 280, protein: 18, fat: 16, carb: 14, sodium: 520 },
+    '红烧': { kcal: 360, protein: 20, fat: 22, carb: 20, sodium: 760 },
+    '油炸': { kcal: 400, protein: 18, fat: 28, carb: 18, sodium: 640 },
+    '清蒸': { kcal: 240, protein: 22, fat: 10, carb: 6, sodium: 400 },
+    '汤':   { kcal: 180, protein: 14, fat: 8, carb: 10, sodium: 460 },
+    '凉拌': { kcal: 200, protein: 14, fat: 10, carb: 10, sodium: 420 },
+  },
+  '素': {
+    '清炒': { kcal: 160, protein: 5, fat: 8, carb: 16, sodium: 380 },
+    '红烧': { kcal: 220, protein: 7, fat: 12, carb: 20, sodium: 620 },
+    '油炸': { kcal: 280, protein: 6, fat: 20, carb: 22, sodium: 720 },
+    '清蒸': { kcal: 130, protein: 6, fat: 5, carb: 14, sodium: 300 },
+    '汤':   { kcal: 120, protein: 6, fat: 4, carb: 12, sodium: 340 },
+    '凉拌': { kcal: 110, protein: 4, fat: 5, carb: 10, sodium: 360 },
+  },
+  '主食': {
+    '清炒': { kcal: 220, protein: 6, fat: 3, carb: 44, sodium: 60 },
+    '红烧': { kcal: 240, protein: 7, fat: 4, carb: 44, sodium: 100 },
+    '油炸': { kcal: 260, protein: 6, fat: 6, carb: 44, sodium: 80 },
+    '清蒸': { kcal: 210, protein: 6, fat: 2, carb: 44, sodium: 50 },
+    '汤':   { kcal: 200, protein: 6, fat: 2, carb: 40, sodium: 80 },
+    '凉拌': { kcal: 190, protein: 5, fat: 2, carb: 38, sodium: 120 },
+  },
+  '汤': {
+    '清炒': { kcal: 140, protein: 8, fat: 5, carb: 14, sodium: 380 },
+    '红烧': { kcal: 180, protein: 10, fat: 8, carb: 16, sodium: 500 },
+    '油炸': { kcal: 200, protein: 8, fat: 12, carb: 14, sodium: 480 },
+    '清蒸': { kcal: 120, protein: 8, fat: 4, carb: 10, sodium: 320 },
+    '汤':   { kcal: 140, protein: 8, fat: 5, carb: 12, sodium: 380 },
+    '凉拌': { kcal: 120, protein: 6, fat: 4, carb: 12, sodium: 300 },
+  },
+};
+
+// ============ 类型关键词（AI 估算时判断荤/素/主食） ============
+const TYPE_KEYWORDS = {
+  '荤': ['肉', '鸡', '鸭', '鱼', '虾', '牛', '羊', '猪', '排', '蛋', '肠', '丸', '蟹', '贝', '肝'],
+  '素': ['菜', '豆', '瓜', '茄', '椒', '笋', '菇', '藕', '芹', '葱', '蒜', '萝', '苗', '花'],
+  '主食': ['饭', '面', '粉', '粥', '馒头', '饼', '包', '饺', '米'],
+};
+
+// ============ 烹饪方式 → 营养修正系数（相对基准） ============
+// 切换烹饪方式时对 AI 估算/库值按系数微调：油炸升油，清蒸降油盐
+const COOK_ADJUST = {
+  '清炒': { kcal: 1.0, fat: 1.0, sodium: 1.0 },
+  '红烧': { kcal: 1.1, fat: 1.2, sodium: 1.3 },
+  '油炸': { kcal: 1.2, fat: 1.5, sodium: 1.1 },
+  '清蒸': { kcal: 0.9, fat: 0.7, sodium: 0.8 },
+  '汤':   { kcal: 0.85, fat: 0.6, sodium: 0.9 },
+  '凉拌': { kcal: 0.8, fat: 0.5, sodium: 0.9 },
+};
+
 // ============ 导出 ============
 // 兼容浏览器（window）与 Node（module.exports）
 (function (root, factory) {
@@ -179,5 +278,9 @@ const ENCOURAGEMENTS = [
     STATUS_ADJUSTMENTS,
     PLAN_REFERENCE,
     ENCOURAGEMENTS,
+    FOOD_DB,
+    AI_ESTIMATE_TEMPLATES,
+    TYPE_KEYWORDS,
+    COOK_ADJUST,
   };
 });

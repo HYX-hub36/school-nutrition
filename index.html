@@ -17,6 +17,7 @@
     </div>
     <nav class="tab-nav" id="tabNav">
       <button class="tab-btn active" data-view="order">今日点餐</button>
+      <button class="tab-btn" data-view="canteen">我的个人食堂</button>
       <button class="tab-btn" data-view="plan">生成方案</button>
       <button class="tab-btn" data-view="report">每日上报</button>
       <button class="tab-btn" data-view="records">我的记录</button>
@@ -49,6 +50,117 @@
 
       <div class="view-hint" id="orderHint">
         💡 提示：点上方「生成方案」可以一键搭配一日三餐；「每日上报」会根据当天状态调整方案。
+      </div>
+    </section>
+
+    <!-- ============ 我的个人食堂 ============ -->
+    <section class="view" id="view-canteen">
+      <div class="view-head">
+        <h2>我的个人食堂</h2>
+        <p class="view-sub">录入你食堂独有的菜，输入菜名自动匹配营养，AI 帮你建自己的食堂菜单库。</p>
+      </div>
+
+      <div class="card">
+        <h3>录入菜品</h3>
+        <div class="field">
+          <label for="canteenName">菜品名称 <span class="field-opt">(输入后自动匹配营养)</span></label>
+          <div class="dish-name-row">
+            <input type="text" id="canteenName" placeholder="如：西红柿炒蛋 / 食堂特色牛肉面">
+            <button class="btn btn-outline" id="cameraBtn" title="拍照识别菜品">📷 拍照</button>
+          </div>
+        </div>
+        <div id="canteenMatchResult" class="match-result"></div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="canteenKcal">热量 (kcal)</label>
+            <input type="number" id="canteenKcal" min="0" step="5" placeholder="自动回填">
+          </div>
+          <div class="field">
+            <label for="canteenProtein">蛋白质 (g)</label>
+            <input type="number" id="canteenProtein" min="0" step="0.5" placeholder="自动回填">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="canteenFat">脂肪 (g)</label>
+            <input type="number" id="canteenFat" min="0" step="0.5" placeholder="自动回填">
+          </div>
+          <div class="field">
+            <label for="canteenCarb">碳水 (g)</label>
+            <input type="number" id="canteenCarb" min="0" step="0.5" placeholder="自动回填">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="canteenSodium">钠 (mg)</label>
+            <input type="number" id="canteenSodium" min="0" step="10" placeholder="自动回填">
+          </div>
+          <div class="field">
+            <label for="canteenPrice">价格 (元) <span class="field-opt">(留空自动补参考均价)</span></label>
+            <input type="number" id="canteenPrice" min="0" step="0.5" placeholder="选填">
+            <p class="field-help" id="canteenPriceNote"></p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="canteenCook">烹饪方式</label>
+          <select id="canteenCook">
+            <option value="清炒">清炒</option>
+            <option value="红烧">红烧</option>
+            <option value="清蒸">清蒸</option>
+            <option value="油炸">油炸</option>
+            <option value="汤">汤</option>
+            <option value="凉拌">凉拌</option>
+          </select>
+          <p class="field-help">选择烹饪方式会修正营养数值。</p>
+        </div>
+        <div class="canteen-actions">
+          <button class="btn btn-primary" id="saveDishBtn">保存菜品</button>
+          <button class="btn btn-outline" id="clearFormBtn">清空</button>
+        </div>
+      </div>
+
+      <div class="canteen-list-section">
+        <h3>我的菜品库 <span id="canteenCount" class="badge-soft">0 道</span></h3>
+        <div id="canteenList" class="canteen-list"></div>
+      </div>
+
+      <!-- 编辑弹层 -->
+      <div id="editModal" class="modal" style="display:none;">
+        <div class="modal-mask"></div>
+        <div class="modal-body">
+          <h3>编辑菜品</h3>
+          <div class="field">
+            <label for="editName">菜品名称</label>
+            <input type="text" id="editName">
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="editPrice">价格 (元)</label><input type="number" id="editPrice" min="0" step="0.5"></div>
+            <div class="field"><label for="editCook">烹饪方式</label>
+              <select id="editCook">
+                <option value="清炒">清炒</option>
+                <option value="红烧">红烧</option>
+                <option value="清蒸">清蒸</option>
+                <option value="油炸">油炸</option>
+                <option value="汤">汤</option>
+                <option value="凉拌">凉拌</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="editKcal">热量 (kcal)</label><input type="number" id="editKcal" min="0" step="5"></div>
+            <div class="field"><label for="editProtein">蛋白 (g)</label><input type="number" id="editProtein" min="0" step="0.5"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="editFat">脂肪 (g)</label><input type="number" id="editFat" min="0" step="0.5"></div>
+            <div class="field"><label for="editCarb">碳水 (g)</label><input type="number" id="editCarb" min="0" step="0.5"></div>
+          </div>
+          <div class="field"><label for="editSodium">钠 (mg)</label><input type="number" id="editSodium" min="0" step="10"></div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="confirmEditBtn">保存</button>
+            <button class="btn btn-outline" id="cancelEditBtn">取消</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -178,26 +290,6 @@
           <label class="check"><input type="checkbox" name="need" value="增肌"> 增肌</label>
           <label class="check"><input type="checkbox" name="need" value="控糖"> 控糖</label>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>自定义食堂菜品</h3>
-        <p class="field-help">食堂没收录的菜，可以自己录入，方案生成时会一起考虑。</p>
-        <div class="dish-form">
-          <input type="text" id="customName" placeholder="菜名">
-          <input type="number" id="customPrice" placeholder="价格(元)" step="0.5" min="0">
-          <input type="number" id="customKcal" placeholder="约热量(kcal)" min="0">
-          <select id="customCook">
-            <option value="清炒">清炒</option>
-            <option value="红烧">红烧</option>
-            <option value="油炸">油炸</option>
-            <option value="蒸煮">蒸煮</option>
-            <option value="汤">汤</option>
-            <option value="凉拌">凉拌</option>
-          </select>
-          <button class="btn btn-outline" id="addDishBtn">添加</button>
-        </div>
-        <div id="customMenuList" class="custom-menu-list"></div>
       </div>
 
       <div class="profile-actions">

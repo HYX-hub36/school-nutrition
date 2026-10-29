@@ -360,6 +360,112 @@
     return { text: list[idx], extra: extra };
   }
 
+  // ============ 个人食堂：营养匹配 / AI 估算 / 参考均价 ============
+
+  /** 按菜名匹配营养数据库（精确 → 包含 → 别名） */
+  function matchFoodByName(name) {
+    if (!name) return { matched: false };
+    var n = String(name).replace(/\s/g, '');
+    // 1. 精确匹配
+    for (var i = 0; i < D.FOOD_DB.length; i++) {
+      if (D.FOOD_DB[i].name === n) return { matched: true, food: D.FOOD_DB[i], confidence: 'high' };
+    }
+    // 2. 名称包含（输入含库名，或库名含输入）
+    for (var j = 0; j < D.FOOD_DB.length; j++) {
+      if (n.indexOf(D.FOOD_DB[j].name) >= 0 || D.FOOD_DB[j].name.indexOf(n) >= 0) {
+        return { matched: true, food: D.FOOD_DB[j], confidence: 'medium' };
+      }
+    }
+    // 3. 别名匹配
+    for (var k = 0; k < D.FOOD_DB.length; k++) {
+      var al = D.FOOD_DB[k].aliases || [];
+      for (var a = 0; a < al.length; a++) {
+        if (n.indexOf(al[a]) >= 0 || al[a].indexOf(n) >= 0) {
+          return { matched: true, food: D.FOOD_DB[k], confidence: 'medium' };
+        }
+      }
+    }
+    return { matched: false };
+  }
+
+  /** 判断菜名属于荤/素/主食/汤（AI 估算用） */
+  function guessType(name) {
+    if (!name) return '荤';
+    var n = String(name);
+    var scores = { '荤': 0, '素': 0, '主食': 0 };
+    Object.keys(D.TYPE_KEYWORDS).forEach(function (type) {
+      D.TYPE_KEYWORDS[type].forEach(function (kw) {
+        if (n.indexOf(kw) >= 0) scores[type] += 1;
+      });
+    });
+    // 启发式判定，顺序重要：
+    // 1) 末字为 面/粉/粥/饼 → 主食（"牛肉面"是面不是荤菜）
+    var last = n.charAt(n.length - 1);
+    if (['面', '粉', '粥', '饼'].indexOf(last) >= 0) return '主食';
+    // 2) 末字为 饭：含 ≥2 个荤词则是炒饭/盖饭（荤），否则主食
+    if (last === '饭') return scores['荤'] >= 2 ? '荤' : '主食';
+    // 3) 完整主食词（馒头等）
+    if (/馒头|杂粮|粗粮/.test(n)) return '主食';
+    // 4) 荤素分
+    if (scores['荤'] > scores['素']) return '荤';
+    if (scores['素'] > scores['荤']) return '素';
+    return '荤'; // 无法判断默认荤
+  }
+
+  /** AI 估算营养（未命中库时）：类型 × 烹饪方式查模板 */
+  function estimateByAI(name, cook) {
+    var type = guessType(name);
+    cook = cook || '清炒';
+    var tpl = (D.AI_ESTIMATE_TEMPLATES[type] && D.AI_ESTIMATE_TEMPLATES[type][cook]) || D.AI_ESTIMATE_TEMPLATES['荤']['清炒'];
+    return {
+      name: name, type: type, cook: cook,
+      kcal: tpl.kcal, protein: tpl.protein, fat: tpl.fat, carb: tpl.carb, sodium: tpl.sodium,
+      source: 'ai',
+    };
+  }
+
+  /** 烹饪方式营养修正：把基准营养按 cook 系数调整 */
+  function applyCookAdjustment(base, cook) {
+    var adj = D.COOK_ADJUST[cook];
+    if (!adj) return base;
+    return {
+      kcal: Math.round(base.kcal * adj.kcal),
+      protein: base.protein,
+      fat: Math.round(base.fat * adj.fat),
+      carb: base.carb,
+      sodium: Math.round(base.sodium * adj.sodium),
+    };
+  }
+
+  /** 同类菜参考均价：从系统菜+用户菜里取同 type 的均价 */
+  function avgPriceByType(type, userDishes) {
+    var pool = D.DISHES.concat(userDishes || []).filter(function (d) {
+      if (!d.price) return false;
+      // 用 cook 或 tags 粗判类型：含肉/蛋为荤，主食名称为主食，否则素
+      var t = guessDishType(d);
+      return t === type;
+    });
+    if (!pool.length) {
+      // 兜底：全库均价
+      pool = D.DISHES.concat(userDishes || []).filter(function (d) { return d.price; });
+    }
+    if (!pool.length) return { price: 3.5, note: '参考均价' };
+    var sum = pool.reduce(function (s, d) { return s + d.price; }, 0);
+    return { price: Math.round(sum / pool.length * 10) / 10, note: '参考均价' };
+  }
+
+  /** 从菜品字段粗判类型（均价用） */
+  function guessDishType(dish) {
+    if (!dish) return '素';
+    var name = dish.name || '';
+    if (D.TYPE_KEYWORDS['主食'].some(function (k) { return name.indexOf(k) >= 0; })) return '主食';
+    if (name === '米饭' || name === '杂粮饭' || name === '红薯' || name === '南瓜粥' || name === '荞麦面') return '主食';
+    if (dish.tags && dish.tags.indexOf('高蛋白') >= 0) return '荤';
+    if (D.TYPE_KEYWORDS['荤'].some(function (k) { return name.indexOf(k) >= 0; })) return '荤';
+    if (D.TYPE_KEYWORDS['素'].some(function (k) { return name.indexOf(k) >= 0; })) return '素';
+    return '荤';
+  }
+
   return {
     evaluateTarget: evaluateTarget,
     sumItems: sumItems,
@@ -370,5 +476,11 @@
     adjustForStatus: adjustForStatus,
     extractStatus: extractStatus,
     encouragement: encouragement,
+    matchFoodByName: matchFoodByName,
+    guessType: guessType,
+    estimateByAI: estimateByAI,
+    applyCookAdjustment: applyCookAdjustment,
+    avgPriceByType: avgPriceByType,
+    guessDishType: guessDishType,
   };
 });
